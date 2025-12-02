@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>No Harassment</title>
+  <style>
+    :root {
+      --bg-dark: #070709;
+      --fg-dark: #e8e8ea;
+      --bg-light: #ffffff;
+      --fg-light: #1a1a1a;
+      --accent: #e50914;
+      --accent2: #ff2a3d;
+      --dock-dark: rgba(15, 15, 15, 0.96);
+      --dock-light: rgba(255, 255, 255, 0.96);
+      --header-dark: rgba(0, 0, 0, 0.7);
+      --header-light: rgba(255, 255, 255, 0.9);
+      --menu-dark: rgba(0, 0, 0, 0.72);
+      --menu-light: rgba(255, 255, 255, 0.92);
+    }
+    * { box-sizing: border-box; }
+    html, body { height: 100%; scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Inter, Arial, sans-serif;
+      background: var(--bg-dark);
+      color: var(--fg-dark);
+      transition: background 0.6s, color 0.6s;
+      line-height: 1.45;
+      cursor: none;
+    }
+    body.light {
+      background: var(--bg-light);
+      color: var(--fg-light);
+    }
+
+    /* Background canvas */
+    #bgCanvas {
+      position: fixed;
+      inset: 0;
+      z-index: -1;
+      display: block;
+      filter: blur(40px) brightness(1.2);
+    }
+
+    /* Header */
+    header {
+      text-align: center;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      backdrop-filter: blur(6px);
+      background: var(--header-dark);
+      border-bottom: 1px solid rgba(255, 0, 0, 0.35);
+      transition: background 0.6s;
+    }
+    body.light header {
+      background: var(--header-light);
+      border-bottom-color: rgba(229, 9, 20, 0.35);
+    }
+    header h1 {
+      margin: 0;
+      padding: 15px 0;
+      font-size: 2rem;
+      color: var(--accent2);
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+
+    /* Sections */
+    section {
+      min-height: 120vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 30px 18px;
+    }
+    .headline {
+      font-size: min(10vw, 70px);
+      line-height: 1.1;
+      margin-bottom: 14px;
+      color: var(--accent2);
+      text-shadow: 0 6px 22px rgba(0, 0, 0, 0.6);
+    }
+    body.light .headline {
+      text-shadow: 0 6px 22px rgba(0, 0, 0, 0.25);
+    }
+    .lead {
+      max-width: 70ch;
+      font-size: clamp(16px, 2.4vw, 20px);
+      margin: 0 auto;
+    }
+
+    a.inline-link {
+      color: var(--accent2);
+      text-decoration: none;
+      border-bottom: 1px solid rgba(229, 9, 20, 0.5);
+    }
+
+    /* Floating hamburger button */
+    #menu-btn {
+      position: fixed;
+      bottom: 30px;
+      right: 30px;
+      width: 54px;
+      height: 54px;
+      border: none;
+      border-radius: 14px;
+      background: var(--menu-dark);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      box-shadow: 0 0 16px rgba(229, 9, 20, 0.7);
+      cursor: pointer;
+      transition: opacity 0.4s, transform 0.4s, background 0.4s;
+      z-index: 20;
+      opacity: 0;
+      transform: translateY(100px);
+    }
+    body.light #menu-btn {
+      background: var(--menu-light);
+    }
+    #menu-btn-bar {
+      width: 26px;
+      height: 2px;
+      background: var(--accent2);
+      border-radius: 999px;
+      transition: transform 0.35s ease, opacity 0.35s ease;
+    }
+    #menu-btn-bar:nth-child(1) { transform-origin: left center; }
+    #menu-btn-bar:nth-child(3) { transform-origin: left center; }
+    #menu-btn.open #menu-btn-bar:nth-child(1) {
+      transform: translateY(4px) rotate(40deg);
+    }
+    #menu-btn.open #menu-btn-bar:nth-child(2) {
+      opacity: 0;
+    }
+    #menu-btn.open #menu-btn-bar:nth-child(3) {
+      transform: translateY(-4px) rotate(-40deg);
+    }
+
+    /* Dock panel */
+    #dock {
+      position: fixed;
+      bottom: -100%;
+      left: 0;
+      right: 0;
+      background: var(--dock-dark);
+      border-top: 1px solid rgba(255, 0, 0, 0.4);
+      display: flex;
+      justify-content: center;
+      gap: 32px;
+      padding: 14px 10px 20px;
+      transition: bottom 0.6s cubic-bezier(0.68, -0.55, 0.27, 1.55), background 0.6s;
+      z-index: 19;
+    }
+    body.light #dock {
+      background: var(--dock-light);
+      border-top-color: rgba(229, 9, 20, 0.5);
+    }
+    #dock.show {
+      bottom: 0;
+    }
+
+    .dock-btn {
+      width: 46px;
+      height: 46px;
+      border-radius: 999px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(0, 0, 0, 0.4);
+      box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.9), 0 10px 24px rgba(0, 0, 0, 0.8);
+      color: var(--accent2);
+      cursor: pointer;
+      opacity: 0;
+      transform: translateY(40px);
+      transition: opacity 0.4s ease, transform 0.4s ease, background 0.4s;
+    }
+    body.light .dock-btn {
+      background: rgba(255, 255, 255, 0.06);
+      box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.08), 0 10px 24px rgba(0, 0, 0, 0.18);
+    }
+    #dock.show .dock-btn {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    .dock-btn:nth-child(1) { transition-delay: 0.05s; }
+    .dock-btn:nth-child(2) { transition-delay: 0.1s; }
+    .dock-btn:nth-child(3) { transition-delay: 0.15s; }
+    .dock-btn:nth-child(4) { transition-delay: 0.2s; }
+    .dock-btn:nth-child(5) { transition-delay: 0.25s; }
+
+    .dock-btn svg {
+      width: 24px;
+      height: 24px;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 1.8;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    /* Custom cursor */
+    .cursor {
+      position: fixed;
+      left: 0;
+      top: 0;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      pointer-events: none;
+      z-index: 30;
+      border: 2px solid var(--accent2);
+      box-shadow: 0 0 18px 6px rgba(229, 9, 20, 0.4);
+      transform: translate(-50%, -50%);
+      mix-blend-mode: screen;
+      opacity: 0.9;
+    }
+    .cursor-dot {
+      position: fixed;
+      left: 0;
+      top: 0;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--accent2);
+      filter: drop-shadow(0 0 6px var(--accent2));
+      transform: translate(-50%, -50%);
+      z-index: 30;
+      pointer-events: none;
+    }
+
+    @media (max-width: 480px) {
+      #dock { gap: 18px; }
+      .dock-btn { width: 40px; height: 40px; }
+    }
+  </style>
+</head>
+<body>
+  <canvas id="bgCanvas"></canvas>
+  <div class="cursor" id="cursor"></div>
+  <div class="cursor-dot" id="cursorDot"></div>
+
+  <header>
+    <h1>No Harassment</h1>
+  </header>
+
+  <section id="about">
+    <h2 class="headline">About</h2>
+    <p class="lead">I am someone who has lived through violence and long periods of unfair treatment. This space is not about details, but about saying clearly that what happened was wrong and that nobody deserves to be treated this way.</p>
+  </section>
+
+  <section id="story">
+    <h2 class="headline">Resilience</h2>
+    <p class="lead">My life has been marked by fear, pressure and people ignoring my safety. Even so, I am still here and still talking. This page is a quiet signal to others who have survived harm: you are not alone and your story matters.</p>
+  </section>
+
+  <section id="letters">
+    <h2 class="headline">Letters</h2>
+    <p class="lead">If you have gone through abuse, bullying or any form of harassment and want to share how you cope, you can write to me. You do not have to share names or private details. Simple honest words about how you keep going can help both of us breathe a bit easier.</p>
+  </section>
+
+  <section id="contact">
+    <h2 class="headline">Contact</h2>
+    <p class="lead">You can reach me by email at
+      <a class="inline-link" href="mailto:artur.kse3@gmail.com">artur.kse3@gmail.com</a>.
+      Please write only if you are respectful and understand that this page exists to support people who have survived harm.
+    </p>
+  </section>
+
+  <button id="menu-btn" aria-label="Open navigation dock">
+    <div id="menu-btn-bar"></div>
+    <div id="menu-btn-bar"></div>
+    <div id="menu-btn-bar"></div>
+  </button>
+
+  <div id="dock" aria-label="Dock navigation">
+    <!-- About -->
+    <div class="dock-btn" data-target="about" aria-label="About">
+      <svg viewBox="0 0 24 24">
+        <path d="M4 11.5L12 4l8 7.5" />
+        <path d="M6 10.5V20h5v-5h2v5h5v-9.5" />
+      </svg>
+    </div>
+    <!-- Resilience -->
+    <div class="dock-btn" data-target="story" aria-label="Resilience">
+      <svg viewBox="0 0 24 24">
+        <path d="M4 18c2-4 4-6 8-6s6 2 8 6" />
+        <circle cx="12" cy="8" r="3" />
+      </svg>
+    </div>
+    <!-- Letters -->
+    <div class="dock-btn" data-target="letters" aria-label="Letters">
+      <svg viewBox="0 0 24 24">
+        <rect x="3.5" y="6" width="17" height="12" rx="1.5" />
+        <path d="M5 8l7 5 7-5" />
+      </svg>
+    </div>
+    <!-- Contact -->
+    <div class="dock-btn" data-target="contact" aria-label="Contact">
+      <svg viewBox="0 0 24 24">
+        <path d="M5 19v-1.5C5 14.5 8 12 12 12s7 2.5 7 5.5V19" />
+        <circle cx="12" cy="8" r="3.2" />
+      </svg>
+    </div>
+    <!-- Theme toggle -->
+    <div class="dock-btn" id="themeToggle" aria-label="Toggle theme">
+      <svg viewBox="0 0 24 24">
+        <path d="M12 4.5a7.5 7.5 0 1 0 7.5 7.5A5.5 5.5 0 0 1 12 4.5Z" />
+      </svg>
+    </div>
+  </div>
+
+<script>
+(function(){
+  const canvas = document.getElementById('bgCanvas');
+  const ctx = canvas.getContext('2d', { alpha: false });
+  const dpr = Math.min(2, window.devicePixelRatio || 1);
+
+  function resize(){
+    canvas.width = innerWidth * dpr;
+    canvas.height = innerHeight * dpr;
+    canvas.style.width = innerWidth + 'px';
+    canvas.style.height = innerHeight + 'px';
+  }
+  addEventListener('resize', resize, { passive: true });
+  resize();
+
+  let scrollT = 0;
+  function updateScroll(){
+    const doc = document.documentElement;
+    const body = document.body;
+    const maxScroll = Math.max(body.scrollHeight, doc.scrollHeight) - innerHeight;
+    const s = Math.max(0, Math.min(maxScroll, (doc.scrollTop || body.scrollTop)));
+    scrollT = maxScroll > 0 ? (s / maxScroll) * 120 : 0;
+  }
+  addEventListener('scroll', updateScroll, { passive: true });
+  updateScroll();
+
+  // Custom cursor
+  const cursor = document.getElementById('cursor');
+  const cursorDot = document.getElementById('cursorDot');
+  let targetX = innerWidth / 2;
+  let targetY = innerHeight / 2;
+  let cx = targetX, cy = targetY;
+
+  function moveCursor(x, y){
+    targetX = x;
+    targetY = y;
+  }
+
+  addEventListener('mousemove', e => moveCursor(e.clientX, e.clientY));
+  addEventListener('touchstart', e => {
+    const t = e.touches[0];
+    moveCursor(t.clientX, t.clientY);
+  }, { passive: true });
+  addEventListener('touchmove', e => {
+    const t = e.touches[0];
+    moveCursor(t.clientX, t.clientY);
+  }, { passive: true });
+
+  // Background plasma (sharper animation)
+  function renderPlasma(t){
+    const w = canvas.width;
+    const h = canvas.height;
+    const scale = 0.6;
+    const rw = (w * scale) | 0;
+    const rh = (h * scale) | 0;
+    const off = new OffscreenCanvas(rw, rh);
+    const rctx = off.getContext('2d');
+    const img = rctx.createImageData(rw, rh);
+    const d = img.data;
+
+    const k1 = 2.0, k2 = 2.6, k3 = 1.8;
+    const v1 = 0.9, v2 = -0.8, v3 = 1.2;
+    const ox = Math.sin(t * 1.2) * 0.6;
+    const oy = Math.cos(t * 1.0) * 0.6;
+
+    for(let y = 0, i = 0; y < rh; y++){
+      const py = (y / rh - 0.5);
+      for(let x = 0; x < rw; x++){
+        const px = (x / rw - 0.5);
+        const r = Math.hypot(px + ox, py + oy);
+        const a = Math.atan2(py + oy, px + ox);
+
+        const f1 = Math.sin((px * k1 + t * v1) * Math.PI * 2);
+        const f2 = Math.sin((py * k2 - t * v2) * Math.PI * 2 + a * 2.5);
+        const f3 = Math.sin((r * k3 + t * v3) * Math.PI * 4.2);
+
+        let v = (f1 + f2 + f3) / 3;
+        const u = Math.pow((v * 0.5 + 0.5), 1.2);
+
+        const red = 40 + u * 215;
+        const green = 6 + u * 22;
+        const blue = 12 + u * 28;
+
+        d[i++] = red;
+        d[i++] = green;
+        d[i++] = blue;
+        d[i++] = 255;
+      }
+    }
+    rctx.putImageData(img, 0, 0);
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(off, 0, 0, w, h);
+  }
+
+  let last = performance.now();
+  function tick(now){
+    const dt = (now - last) / 1000;
+    last = now;
+
+    const ease = 1 - Math.pow(0.001, dt * 60);
+    cx += (targetX - cx) * ease;
+    cy += (targetY - cy) * ease;
+    cursor.style.left = cx + 'px';
+    cursor.style.top = cy + 'px';
+    cursorDot.style.left = targetX + 'px';
+    cursorDot.style.top = targetY + 'px';
+
+    const pulse = 1 + Math.sin(now * 0.02) * 0.15;
+    cursor.style.transform = 'translate(-50%, -50%) scale(' + pulse + ')';
+
+    renderPlasma(scrollT + now * 0.0015);
+
+    requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+
+  // Dock + menu logic
+  const menuBtn = document.getElementById('menu-btn');
+  const dock = document.getElementById('dock');
+  const dockButtons = dock.querySelectorAll('.dock-btn[data-target]');
+  const themeToggle = document.getElementById('themeToggle');
+  let dockVisible = false;
+  let lastScrollY = window.scrollY;
+
+  function showMenuButton(){
+    if (window.scrollY > 50 && !dockVisible){
+      menuBtn.style.opacity = '1';
+      menuBtn.style.transform = 'translateY(0)';
+    } else if (!dockVisible && window.scrollY <= 50) {
+      menuBtn.style.opacity = '0';
+      menuBtn.style.transform = 'translateY(100px)';
+    }
+  }
+
+  function hideMenuButton(){
+    menuBtn.style.opacity = '0';
+    menuBtn.style.transform = 'translateY(100px)';
+  }
+
+  function openDock(){
+    dockVisible = true;
+    dock.classList.add('show');
+    menuBtn.classList.add('open');
+    hideMenuButton();
+  }
+
+  function closeDock(){
+    dockVisible = false;
+    dock.classList.remove('show');
+    menuBtn.classList.remove('open');
+    showMenuButton();
+  }
+
+  menuBtn.addEventListener('click', () => {
+    if (dockVisible){
+      closeDock();
+    } else {
+      openDock();
+    }
+  });
+
+  // Scroll behavior for showing/hiding hamburger
+  window.addEventListener('scroll', () => {
+    const cur = window.scrollY;
+    if (dockVisible){
+      // If user scrolls while dock is open, close it and then apply logic
+      closeDock();
+    }
+    if (cur > lastScrollY){
+      // scrolling down
+      hideMenuButton();
+    } else {
+      // scrolling up
+      showMenuButton();
+    }
+    lastScrollY = cur;
+  });
+
+  // Initial state for menu button
+  showMenuButton();
+
+  // Navigation from dock buttons
+  function navigateTo(id){
+    const el = document.getElementById(id);
+    if (!el) return;
+    closeDock();
+    el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  dockButtons.forEach(btn => {
+    const target = btn.getAttribute('data-target');
+    btn.addEventListener('click', () => navigateTo(target));
+  });
+
+  // Theme toggle
+  themeToggle.addEventListener('click', () => {
+    document.body.classList.toggle('light');
+  });
+})();
+</script>
+</body>
+</html>
